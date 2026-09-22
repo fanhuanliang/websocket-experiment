@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Echo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 640px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    h1 { font-size: 1.25rem; margin-bottom: 1rem; }
+    #log {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5rem 0.75rem;
+      height: 320px;
+      overflow-y: auto;
+      margin-bottom: 0.75rem;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.85rem;
+      background: canvas;
+    }
+    #log div { padding: 0.15rem 0; white-space: pre-wrap; word-break: break-word; }
+    .in  { color: #0a7; }
+    .out { color: #06c; }
+    .sys { color: #888; font-style: italic; }
+    #row { display: flex; gap: 0.5rem; }
+    #msg { flex: 1; padding: 0.5rem 0.6rem; font-size: 0.95rem; }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebSocket Echo — stage 1</h1>
+  <div id="log" aria-live="polite"></div>
+  <div id="row">
+    <input id="msg" placeholder="type a message and press Enter" autofocus autocomplete="off">
+    <button id="send">Send</button>
+  </div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const input = document.getElementById('msg');
+    const btn   = document.getElementById('send');
+
+    function line(text, cls) {
+      const el = document.createElement('div');
+      el.className = cls;
+      el.textContent = text;
+      logEl.appendChild(el);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen    = ()  => line('[open]', 'sys');
+    ws.onmessage = (e) => line('< ' + e.data, 'in');
+    ws.onclose   = (e) => line('[close code=' + e.code + ']', 'sys');
+    ws.onerror   = ()  => line('[error]', 'sys');
+
+    function send() {
+      const text = input.value;
+      if (!text) return;
+      if (ws.readyState !== WebSocket.OPEN) {
+        line('[not open — dropped: ' + text + ']', 'sys');
+        return;
+      }
+      ws.send(text);
+      line('> ' + text, 'out');
+      input.value = '';
+    }
+
+    btn.addEventListener('click', send);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+  </script>
+</body>
+</html>
