@@ -38,7 +38,7 @@
   </style>
 </head>
 <body>
-  <h1>WebSocket Echo — stage 1</h1>
+  <h1>WebSocket Echo — stage 2</h1>
   <div id="log" aria-live="polite"></div>
   <div id="row">
     <input id="msg" placeholder="type a message and press Enter" autofocus autocomplete="off">
@@ -61,7 +61,16 @@
     const ws = new WebSocket('ws://localhost:8080');
 
     ws.onopen    = ()  => line('[open]', 'sys');
-    ws.onmessage = (e) => line('< ' + e.data, 'in');
+    ws.onmessage = (e) => {
+      try {
+        const obj = JSON.parse(e.data);
+        if (obj && obj.type === 'welcome') {
+          line('[welcome id=' + obj.id + ']', 'sys');
+          return;
+        }
+      } catch { /* not JSON — fall through */ }
+      line('< ' + e.data, 'in');
+    };
     ws.onclose   = (e) => line('[close code=' + e.code + ']', 'sys');
     ws.onerror   = ()  => line('[error]', 'sys');
 
