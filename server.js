@@ -43,6 +43,9 @@ wss.on('connection', (ws) => {
 
   ws.send(JSON.stringify({ type: 'welcome', id: ws.id }));
 
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   ws.on('message', (data) => {
     const text = data.toString();
     console.log('msg', ws.id, Buffer.byteLength(text), 'bytes');
@@ -65,6 +68,21 @@ wss.on('connection', (ws) => {
   });
 });
 
+const HEARTBEAT_MS = 30_000;
+const heartbeat = setInterval(() => {
+  for (const ws of clients) {
+    if (ws.isAlive === false) {
+      console.log('terminate', ws.id, '(missed pong)');
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }
+}, HEARTBEAT_MS);
+
+wss.on('close', () => clearInterval(heartbeat));
+
 server.listen(PORT, () => {
-  console.log(`listening on http://localhost:${PORT}`);
+  console.log(`listening on http://localhost:${PORT} (heartbeat ${HEARTBEAT_MS}ms)`);
 });
